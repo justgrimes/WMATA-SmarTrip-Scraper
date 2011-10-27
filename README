@@ -1,0 +1,3 @@
+WMATA SmarTrip Scrapper
+
+Python scrapper that scrapes transit a SmarTrip user's transit usage data from WMATA website (http://smartrip.wmata.com)
