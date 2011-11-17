@@ -1,69 +1,87 @@
-# Simple screen scraper for WMATA SmarTrip Card Usage History
+# Simple python screen scraper for WMATA SmarTrip Card Usage History Data
 # Scrapes data from WMATA's website and returns clean CVS file of SmarTrip Card Usage History.
+# Written by Justin Grimes (@justgrimes) & Josh Tauberer (@joshdata) 
 
+# NOTES - ONLY THING NECESSARY IS TO ADD USER NAME AND PASSWORD IN CODE 
+# Works perfectly, uses mechanize to navigate pages and beautiful soup to extract data
+# Will extract data from WMATA and write seperate csv files for each card associate w/ account
+
+# importing libs
 import re
-import urllib
-import urllib2 #extensible lib for opening urls
-import BeautifulSoup #Beautiful Soup lib for html parsing
+import BeautifulSoup
 import mechanize
-#import cookielib #coookie lib does what? gens cookie?
+import csv
+import sys
 
-#cookie storage
-#cj = cookielib.CookieJar()
+br = mechanize.Browser()
+br.open("https://smartrip.wmata.com/Account/AccountLogin.aspx") #login page
 
-#create an opener
-#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+br.select_form(name="aspnetForm") #form name
+br["ctl00$MainContent$txtUsername"] = "USERNAME GOES HERE" #<-- enter your username here
+br["ctl00$MainContent$txtPassword"] = "PASSWORD GOES HERE" #<-- enter your password here
 
-#opener.addheaders.append(('User-agent', 'Mozilla/4.0'))
-#opener.addheaders.append( ('Referer', 'http://www.yahoo.com') )
+response1 = br.submit().read()
 
-#login_data = urllib.urlencode({'ctl00$MainContent$txtUsername' : '<user>','ctl00$MainContent$txtPassword' : '<password>','ctl00$MainContent$btnSubmit' : 'Login'})
+if len(sys.argv) == 1:
+	# download the first card, but show all card names so the user can choose
+	
+	print "Available cards are..."
+	for cards in re.findall(r"CardSummary.aspx\?card_id=(\d+)\">(.*?)<", response1):
+		print cards[0], cards[1]
+	print ""
+	print "And you can specify a card number on the command line!"
+	print
+	
+	matching_card = re.search(r"CardSummary.aspx\?card_id=(\d+)\">(.*?)<", response1)
+	if not matching_card: raise Exception("card not found")
+	card_id = matching_card.group(1)
+	card_name = matching_card.group(2)
 
-#resp = opener.open('https://smartrip.wmata.com/Account/AccountLogin.aspx',login_data)
-#print resp
+	print "Downloading data for...", card_id, card_name
 
-#y = urllib2.urlopen("https://smartrip.wmata.com/Account/Account/AccountLogin.aspx __EVENTTARGET=&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUKLTc2NDI3NTcwNWQYAQUeX19Db250cm9sc1JlcXVpcmVQb3N0QmFja0tleV9fFgEFG2N0bDAwJE1haW5Db250ZW50JGJ0blN1Ym1pdE0N4FFqxxyFKGzFZmwweg441M%2BY&__EVENTVALIDATION=%2FwEWBAKU97HPCgKMrfvLAgKOsPfSCQL25qnqCCr34JdQTPtmshm%2BHfM4dclmab88&ctl00%24MainContent%24txtUsername=justgrimes&ctl00%24MainContent%24txtPassword=four28&ctl00%24MainContent%24btnSubmit.x=27&ctl00%24MainContent%24btnSubmit.y=15") 
-#print y.read()
+else:
+	# download just one card's data
+	card_id = sys.argv[1]
 
-#br = mechanize.Browser()
-#br.open("https://smartrip.wmata.com/Account/AccountLogin.aspx")
-#response1 = br.open("https://smartrip.wmata.com/Account/AccountLogin.aspx")
-#assert br.viewing_html()
-#print br.title() #ascii simple out of range bad metro
-#print response1.geturl()
-#print response1.info()  # headers
+#follows link to View Card Summary page	for a particular card
+response1 = br.follow_link(url_regex=r"CardSummary.aspx\?card_id=" + card_id).read()
 
-#for form in br.forms():
-#       print form
+#follows link to View Usage History page for a particular card
+response1 = br.follow_link(text_regex=r"View Usage History").read()
 
-login_data = urllib.urlencode({'ctl00$MainContent$txtUsername' : '<username>','ctl00$MainContent$txtPassword' : '<password>'})
-rq = mechanize.Request("https://smartrip.wmata.com/Account/AccountLogin.aspx", login_data)
-rs = mechanize.urlopen(rq)
-data = rs.read()
+br.select_form(name="aspnetForm")
 
-print data
+response1 = br.submit().read()
 
-#print response1.read()  # body
-#br.select_form(name="aspnetForm")
+br.select_form(name="aspnetForm")
 
-#response2 = br.submit()
+#transaction status either 'All' or 'Successful' or 'Failed Autoloads'; All includes every succesful transaction including failed (card didn't swipe or error)  
+br["ctl00$MainContent$ddlTransactionStatus"] = ["All"]
 
-#print br.form
-#resp.close()
+br.submit()
 
-#once the data is pulled down, load files and use beautiful soup to extract data from HTML table and write to csv
-#f = open("jan2011.html","r")
-#g = open("output.csv","w")
+#write files
+g = csv.writer(open('wmata_log_' + card_id + '.csv', 'w'))
 
+#wmata only started posting data in 2010, pulls all available months
+for year in xrange(2010, 2011+1):
+	for month in xrange(1, 12+1):
+		time_period = ("%d%02d" % (year, month))
+		print "\t", time_period
 
-#soup = BeautifulSoup.BeautifulSoup(f)
-#t = soup.findAll('table')[1:]
+		try:
+			#opens link to 'print' version of usage page for easier extraction 
+			br.open("https://smartrip.wmata.com/Card/CardUsageReport2.aspx?card_id=" + card_id + "&period=M&month=" + time_period)
+			response1 = br.follow_link(text_regex=r"Print Version").read()
+		except:
+			continue
+			
+		#extracts data from html table, writes to csv
+		soup = BeautifulSoup.BeautifulSoup(response1)
+		t = soup.findAll('table')[1:]
 
-#for table in t:
-#	rows = table.findAll('tr')
-# 	for tr in rows:
-#		cols = tr.findAll('td')
-#		for td in cols:
-#			g.write(str(td.find(text=True)))
-#			g.write(",")
-#		g.write("\n")
+		for table in t:
+			rows = table.findAll('tr')
+			for tr in rows:
+				cols = tr.findAll('td')
+				g.writerow( [str(td.find(text=True)) for td in cols] )
