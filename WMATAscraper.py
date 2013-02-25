@@ -12,13 +12,16 @@ import BeautifulSoup
 import mechanize
 import csv
 import sys
+import datetime
+
+now = datetime.datetime.now()
 
 br = mechanize.Browser()
 br.open("https://smartrip.wmata.com/Account/AccountLogin.aspx") #login page
 
 br.select_form(name="aspnetForm") #form name
-br["ctl00$MainContent$txtUsername"] = "USERNAME GOES HERE" #<-- enter your username here
-br["ctl00$MainContent$txtPassword"] = "PASSWORD GOES HERE" #<-- enter your password here
+br["ctl00$MainContent$txtUsername"] = "justgrimes" #<-- enter your username here
+br["ctl00$MainContent$txtPassword"] = "Causeway2012!" #<-- enter your password here
 
 response1 = br.submit().read()
 
@@ -64,7 +67,7 @@ br.submit()
 g = csv.writer(open('wmata_log_' + card_id + '.csv', 'w'))
 
 #wmata only started posting data in 2010, pulls all available months
-for year in xrange(2010, 2011+1):
+for year in xrange(2010, now.year+1):
 	for month in xrange(1, 12+1):
 		time_period = ("%d%02d" % (year, month))
 		print "\t", time_period
