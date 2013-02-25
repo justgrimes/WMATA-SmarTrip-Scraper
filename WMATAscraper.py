@@ -20,8 +20,8 @@ br = mechanize.Browser()
 br.open("https://smartrip.wmata.com/Account/AccountLogin.aspx") #login page
 
 br.select_form(name="aspnetForm") #form name
-br["ctl00$MainContent$txtUsername"] = "justgrimes" #<-- enter your username here
-br["ctl00$MainContent$txtPassword"] = "Causeway2012!" #<-- enter your password here
+br["ctl00$MainContent$txtUsername"] = "" #<-- enter your username here
+br["ctl00$MainContent$txtPassword"] = "" #<-- enter your password here
 
 response1 = br.submit().read()
 
