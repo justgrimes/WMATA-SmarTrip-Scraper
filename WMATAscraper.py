@@ -1,25 +1,16 @@
 # Simple python screen scraper for WMATA SmarTrip Card Usage History Data
 # Scrapes data from WMATA's website and returns clean CVS file of SmarTrip Card Usage History.
-# Written by Justin Grimes (@justgrimes) & Josh Tauberer (@joshdata) 
-
 # NOTES - ONLY THING NECESSARY IS TO ADD USER NAME AND PASSWORD IN CODE 
-# Works perfectly, uses mechanize to navigate pages and beautiful soup to extract data
-# Will extract data from WMATA and write seperate csv files for each card associate w/ account
 
 # importing libs
-import re
-import BeautifulSoup
-import mechanize
-import csv
-import sys
-import datetime
+import BeautifulSoup, mechanize, csv, sys, datetime, re
 
 now = datetime.datetime.now()
 
 br = mechanize.Browser()
 br.open("https://smartrip.wmata.com/Account/AccountLogin.aspx") #login page
 
-br.select_form(name="aspnetForm") #form name
+br.select_form(nr=0) #form name
 br["ctl00$MainContent$txtUsername"] = "" #<-- enter your username here
 br["ctl00$MainContent$txtPassword"] = "" #<-- enter your password here
 
@@ -52,11 +43,11 @@ response1 = br.follow_link(url_regex=r"CardSummary.aspx\?card_id=" + card_id).re
 #follows link to View Usage History page for a particular card
 response1 = br.follow_link(text_regex=r"View Usage History").read()
 
-br.select_form(name="aspnetForm")
+br.select_form(nr=0)
 
 response1 = br.submit().read()
 
-br.select_form(name="aspnetForm")
+br.select_form(nr=0)
 
 #transaction status either 'All' or 'Successful' or 'Failed Autoloads'; All includes every succesful transaction including failed (card didn't swipe or error)  
 br["ctl00$MainContent$ddlTransactionStatus"] = ["All"]
